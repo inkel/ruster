@@ -147,30 +147,7 @@ Protest.describe "Node" do
       end
     end
 
-    test "meet other node" do
-      with_nodes(n: 2) do |ports|
-        port_a, port_b = ports.to_a
-
-        node = Ruster::Node.new("127.0.0.1:#{port_a}")
-
-        node.load!
-
-        assert_equal 0, node.friends.size
-
-        # Need to meet both nodes
-        node.meet("127.0.0.1", port_b)
-
-        node.load!
-
-        assert_equal 1, node.friends.size
-
-        other = node.friends.first
-
-        assert_equal "127.0.0.1:#{port_b}", other.addr
-      end
-    end
-
-    test "forget node" do
+    test "meet and forget node" do
       with_nodes(n: 2) do |ports|
         port_a, port_b = ports.to_a
 
@@ -189,6 +166,9 @@ Protest.describe "Node" do
 
         assert_equal 1, node_a.friends.size
         assert_equal 1, node_b.friends.size
+
+        assert_equal node_b.id, node_a.friends.first.id
+        assert_equal node_a.id, node_b.friends.first.id
 
         # But one tragic afternoon, node_b took a terrible decision
         node_b.forget(node_a)
