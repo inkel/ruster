@@ -59,4 +59,8 @@ class Ruster::Node
   def all_slots
     slots.map(&:to_a).flatten
   end
+
+  def to_s
+    "#{addr} [#{id}]"
+  end
 end

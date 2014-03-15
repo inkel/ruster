@@ -33,6 +33,8 @@ Protest.describe "Node" do
     assert_equal 2, node.config_epoch
     assert_equal "connected", node.state
     assert_equal [], node.slots
+
+    assert_equal "127.0.0.1:12701 [9aee954a0b7d6b49d7e68c18d08873c56aaead6b]", node.to_s
   end
 
   context "allocated slots" do
