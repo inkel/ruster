@@ -7,7 +7,39 @@ $verbose = 0
 
 action, *args = Clap.run ARGV, "-v" => -> { $verbose += 1 }
 
-abort "Usage: #{File.basename($0)} <action> ip:port [...]" if action.nil? or args.nil? or args.empty?
+USAGE = <<EOU
+Usage: #{File.basename($0)} [-v] <action> ip:port [...]
+
+Parameters
+
+  -v        Increases verbosity level. Can be used more than once.
+
+Actions
+
+  create    ip:port [ip:port...]
+            Creates a cluster with all the passed nodes
+
+  add       cluster_ip:port ip:port
+            Add node ip:port to the cluster at cluster_ip:port
+
+  remove    cluster_ip:port ip:port
+            Remove node from the cluster at cluster_ip:port
+            Note that currently removing a node that has assigned
+            slots breaks the cluster state.
+
+  each      cluster_ip:port CMD...
+            Execute Redis CMD in all nodes
+
+  reshard   cluster_ip:port slots target_ip:port source_ip:port...
+            Reshards `slots` slots into target_ip:port, taking slots
+            proportionally from all the nodes in source_ip:port
+
+            Accepts `-n n` to indicate a destination DB
+            Accepts `-t ms` to indicate timeout for keys migration
+
+EOU
+
+abort USAGE if action.nil? or args.nil? or args.empty?
 
 module UI
   def err msg
@@ -307,7 +339,7 @@ begin
 
     cluster.reshard(target_addr, slots, sources, options)
   else
-    UI.abort "Unrecognized action #{action}"
+    UI.abort "Unrecognized action `#{action}'\n#{USAGE}"
   end
 rescue => ex
   UI.abort ex.message, ex.backtrace
