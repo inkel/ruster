@@ -147,53 +147,53 @@ Protest.describe "Node" do
       end
     end
 
-    test "meet and forget node" do
+    test "meet and forget node, a tragic love story" do
       with_nodes(n: 2) do |ports|
         port_a, port_b = ports.to_a
 
         # This is the story of two nodes
-        node_a = Ruster::Node.new("127.0.0.1:#{port_a}")
-        node_b = Ruster::Node.new("127.0.0.1:#{port_b}")
+        joel = Ruster::Node.new("127.0.0.1:#{port_a}")
+        clem = Ruster::Node.new("127.0.0.1:#{port_b}")
 
         # One day they met for the first time and fell for each other
-        node_a.meet("127.0.0.1", port_b)
+        joel.meet("127.0.0.1", port_b)
 
         # Give the nodes some time to get to know each other
         sleep 0.5
 
-        node_a.load!
-        node_b.load!
+        joel.load!
+        clem.load!
 
-        assert_equal 1, node_a.friends.size
-        assert_equal 1, node_b.friends.size
+        assert_equal 1, joel.friends.size
+        assert_equal 1, clem.friends.size
 
-        assert_equal node_b.id, node_a.friends.first.id
-        assert_equal node_a.id, node_b.friends.first.id
+        assert_equal clem.id, joel.friends.first.id
+        assert_equal joel.id, clem.friends.first.id
 
-        # But one tragic afternoon, node_b took a terrible decision
-        node_b.forget(node_a)
+        # But one tragic afternoon, clem took a terrible decision
+        clem.forget(joel)
 
         # Give the nodes some time to process their breakup
         sleep 0.5
 
-        node_a.load!
-        node_b.load!
+        joel.load!
+        clem.load!
 
-        # node_a still remembers node_b...
-        assert_equal 1, node_a.friends.size
+        # joel still remembers clem...
+        assert_equal 1, joel.friends.size
 
-        # ...but node_b has already moved on
-        assert_equal 0, node_b.friends.size
+        # ...but clem has already moved on
+        assert_equal 0, clem.friends.size
 
-        # node_a now decides to use the machine from Eternal sunshine of the spotless mind...
-        node_a.forget(node_b)
+        # joel now decides to use the machine from Eternal sunshine of the spotless mind...
+        joel.forget(clem)
 
         # ...and after a while, this story ends
         sleep 0.5
 
-        node_a.load!
+        joel.load!
 
-        assert_equal 0, node_a.friends.size
+        assert_equal 0, joel.friends.size
       end
     end
 
