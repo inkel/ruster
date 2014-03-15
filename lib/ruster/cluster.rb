@@ -67,4 +67,11 @@ class Ruster::Cluster
   def add_node(ip, port)
     @entry.meet(ip, port)
   end
+
+  def remove_node(bye)
+    nodes.each do |node|
+      next if node.id == bye.id
+      node.forget(bye)
+    end
+  end
 end
