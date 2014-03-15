@@ -199,6 +199,30 @@ class Cluster
 
     UI.abort res.message if res.is_a?(RuntimeError)
   end
+
+  def nodes!
+    node = nodes.sample
+
+    node.call("CLUSTER", "NODES").split("\n").map do |line|
+      _, ip_port, flags, _ = line.split
+
+      if flags.include?("myself")
+        node
+      else
+        Node.new(ip_port)
+      end
+    end
+  end
+
+  def call(*args)
+    nodes!.each do |node|
+      UI.info "#{node}: #{args.join(' ')}"
+
+      res = node.call(*args)
+      UI.info res
+      UI.info "--"
+    end
+  end
 end
 
 begin
@@ -218,6 +242,10 @@ begin
     args.each do |addr|
       cluster.remove_node(Node.new(addr))
     end
+  when "call"
+    cluster = Cluster.new(args.shift)
+
+    cluster.call(*args)
   else
     UI.abort "Unrecognized action #{action}"
   end
