@@ -89,4 +89,8 @@ class Ruster::Node
   def meet(ip, port)
     call("CLUSTER", "MEET", ip, port)
   end
+
+  def forget(node)
+    call("CLUSTER", "FORGET", node.id)
+  end
 end

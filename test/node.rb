@@ -169,5 +169,52 @@ Protest.describe "Node" do
         assert_equal "127.0.0.1:#{port_b}", other.addr
       end
     end
+
+    test "forget node" do
+      with_nodes(n: 2) do |ports|
+        port_a, port_b = ports.to_a
+
+        # This is the story of two nodes
+        node_a = Ruster::Node.new("127.0.0.1:#{port_a}")
+        node_b = Ruster::Node.new("127.0.0.1:#{port_b}")
+
+        # One day they met for the first time and fell for each other
+        node_a.meet("127.0.0.1", port_b)
+
+        # Give the nodes some time to get to know each other
+        sleep 0.5
+
+        node_a.load!
+        node_b.load!
+
+        assert_equal 1, node_a.friends.size
+        assert_equal 1, node_b.friends.size
+
+        # But one tragic afternoon, node_b took a terrible decision
+        node_b.forget(node_a)
+
+        # Give the nodes some time to process their breakup
+        sleep 0.5
+
+        node_a.load!
+        node_b.load!
+
+        # node_a still remembers node_b...
+        assert_equal 1, node_a.friends.size
+
+        # ...but node_b has already moved on
+        assert_equal 0, node_b.friends.size
+
+        # node_a now decides to use the machine from Eternal sunshine of the spotless mind...
+        node_a.forget(node_b)
+
+        # ...and after a while, this story ends
+        sleep 0.5
+
+        node_a.load!
+
+        assert_equal 0, node_a.friends.size
+      end
+    end
   end
 end
