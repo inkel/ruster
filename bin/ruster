@@ -4,12 +4,8 @@ require "redic"
 require "clap"
 
 $verbose = 0
-$timeout = 10_000_000
 
-action, *args = Clap.run ARGV, {
-                                "-v" => ->     { $verbose += 1 },
-                                "-t" => ->(ms) { $timeout = ms }
-                              }
+action, *args = Clap.run ARGV, "-v" => -> { $verbose += 1 }
 
 abort "Usage: #{File.basename($0)} <action> ip:port [...]" if action.nil? or args.nil? or args.empty?
 
