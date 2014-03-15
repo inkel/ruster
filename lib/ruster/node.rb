@@ -119,4 +119,12 @@ class Ruster::Node
   def cluster_info
     parse_info(call("CLUSTER", "INFO"))
   end
+
+  def ip
+    addr.split(":").first
+  end
+
+  def port
+    addr.split(":").last
+  end
 end
