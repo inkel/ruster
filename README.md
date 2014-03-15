@@ -59,6 +59,23 @@ $ ruster reshard cluster_ip:port slots target_ip:port source_ip:port [...]
 Reshards the cluster at `cluster_ip:port`, by moving `slots` slots
 from several `source_ip:port` to `target_ip:port`.
 
+It accepts the following parameters:
+
+* `-n` indicate destination DB (currently only `0` seem to be working)
+* `-t` indicate timeout for [`MIGRATE`][migrate] keys
+
+[migrate]: http://redis.io/commands/migrate
+
+### Global parameters
+
+`ruster` accepts the following global parameters:
+
+* `-v` verbose output. It could be used multiple times, to indicate
+  the level of verbosity.
+
+  1. display log messages
+  1. display Redis commands sent to the cluster
+
 ## TODO
 
 * documentation
