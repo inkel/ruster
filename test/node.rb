@@ -134,4 +134,40 @@ Protest.describe "Node" do
       assert_equal "127.0.0.1:12701 [9aee954a0b7d6b49d7e68c18d08873c56aaead6b]", node.to_s
     end
   end
+
+  context "in cluster" do
+    test "only node" do
+      with_nodes(n: 1) do |ports|
+        node = Ruster::Node.new("127.0.0.1:#{ports.first}")
+
+        node.load!
+
+        assert       node.id
+        assert_equal [], node.friends
+      end
+    end
+
+    test "meet other node" do
+      with_nodes(n: 2) do |ports|
+        port_a, port_b = ports.to_a
+
+        node = Ruster::Node.new("127.0.0.1:#{port_a}")
+
+        node.load!
+
+        assert_equal 0, node.friends.size
+
+        # Need to meet both nodes
+        node.meet("127.0.0.1", port_b)
+
+        node.load!
+
+        assert_equal 1, node.friends.size
+
+        other = node.friends.first
+
+        assert_equal "127.0.0.1:#{port_b}", other.addr
+      end
+    end
+  end
 end

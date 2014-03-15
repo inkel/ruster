@@ -84,4 +84,8 @@ class Ruster::Node
       end
     end
   end
+
+  def meet(ip, port)
+    client.call("CLUSTER", "MEET", ip, port)
+  end
 end
