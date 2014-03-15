@@ -115,4 +115,8 @@ class Ruster::Node
   def flush_slots!
     call("CLUSTER", "FLUSHSLOTS")
   end
+
+  def cluster_info
+    parse_info(call("CLUSTER", "INFO"))
+  end
 end
