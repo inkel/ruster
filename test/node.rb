@@ -45,6 +45,8 @@ Protest.describe "Node" do
         node.read_info_line!(info_line)
 
         assert_equal [(0..16383)], node.slots
+        assert       node.migrating.empty?
+        assert       node.importing.empty?
       end
 
       test "single" do
@@ -55,16 +57,50 @@ Protest.describe "Node" do
         node.read_info_line!(info_line)
 
         assert_equal [(4096..4096)], node.slots
+        assert       node.migrating.empty?
+        assert       node.importing.empty?
+      end
+
+      test "migrating" do
+        info_line = "9aee954a0b7d6b49d7e68c18d08873c56aaead6b :0 myself,master - 0 1 2 connected [16383->-6daeaa65c37880d81c86e7d94b6d7b0a459eea9]"
+
+        node = Ruster::Node.new("127.0.0.1:12701")
+
+        node.read_info_line!(info_line)
+
+        assert_equal [], node.slots
+        assert_equal 1, node.migrating.size
+        assert_equal "6daeaa65c37880d81c86e7d94b6d7b0a459eea9", node.migrating[16383]
+        assert       node.importing.empty?
+      end
+
+      test "importing" do
+        info_line = "9aee954a0b7d6b49d7e68c18d08873c56aaead6b :0 myself,master - 0 1 2 connected [16383-<-6daeaa65c37880d81c86e7d94b6d7b0a459eea9]"
+
+        node = Ruster::Node.new("127.0.0.1:12701")
+
+        node.read_info_line!(info_line)
+
+        assert_equal [], node.slots
+        assert_equal 1, node.importing.size
+        assert_equal "6daeaa65c37880d81c86e7d94b6d7b0a459eea9", node.importing[16383]
+        assert       node.migrating.empty?
       end
 
       test "combined" do
-        info_line = "9aee954a0b7d6b49d7e68c18d08873c56aaead6b :0 myself,master - 0 1 2 connected 0-1024 2048 4096 8192-16383"
+        info_line = "9aee954a0b7d6b49d7e68c18d08873c56aaead6b :0 myself,master - 0 1 2 connected 0-1024 2048 [3072->-6daeaa65c37880d81c86e7d94b6d7b0a459eea9] 4096 [6144-<-6daeaa65c37880d81c86e7d94b6d7b0a459eea9] 8192-16383"
 
         node = Ruster::Node.new("127.0.0.1:12701")
 
         node.read_info_line!(info_line)
 
         assert_equal [(0..1024), (2048..2048), (4096..4096), (8192..16383)], node.slots
+
+        assert_equal 1, node.migrating.size
+        assert_equal "6daeaa65c37880d81c86e7d94b6d7b0a459eea9", node.migrating[3072]
+
+        assert_equal 1, node.importing.size
+        assert_equal "6daeaa65c37880d81c86e7d94b6d7b0a459eea9", node.importing[6144]
       end
 
       test "#all_slots" do
