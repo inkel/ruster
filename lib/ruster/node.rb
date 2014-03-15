@@ -1,4 +1,6 @@
 class Ruster::Node
+  include Ruster::Util
+
   attr :addr
   attr :id
   attr :flags
@@ -17,7 +19,9 @@ class Ruster::Node
   end
 
   def enabled?
-    client.call("INFO", "cluster").include?("cluster_enabled:1")
+    res = client.call("INFO", "cluster")
+    raise res if res.is_a?(RuntimeError)
+    parse_info(res)[:cluster_enabled] == "1"
   end
 
   def read_info_line!(info_line)
