@@ -196,6 +196,12 @@ begin
   when "create"
     cluster = Cluster.new(args)
     cluster.create!
+  when "add"
+    cluster = Cluster.new(args.shift)
+
+    args.each do |addr|
+      cluster.add_node(Node.new(addr))
+    end
   else
     UI.abort "Unrecognized action #{action}"
   end
