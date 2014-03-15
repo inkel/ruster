@@ -210,7 +210,7 @@ class Cluster
     end
   end
 
-  def call(*args)
+  def each(*args)
     nodes!.each do |node|
       UI.info "#{node}: #{args.join(' ')}"
 
@@ -291,10 +291,10 @@ begin
     args.each do |addr|
       cluster.remove_node(Node.new(addr))
     end
-  when "call"
+  when "each"
     cluster = Cluster.new(args.shift)
 
-    cluster.call(*args)
+    cluster.each(*args)
   when "reshard"
     options = {}
 

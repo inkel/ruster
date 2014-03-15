@@ -44,7 +44,7 @@ node.
 ### Execute a command in all nodes
 
 ```
-$ ruster call ip:port [CMD ...]
+$ ruster each ip:port [CMD ...]
 ```
 
 Executes the [Redis command][redis-commands] in all nodes, displaying
