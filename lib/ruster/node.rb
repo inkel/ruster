@@ -103,4 +103,16 @@ class Ruster::Node
       self.class.from_info_line(line)
     end
   end
+
+  def add_slots(*slots)
+    call("CLUSTER", "ADDSLOTS", *slots)
+  end
+
+  def del_slots(*slots)
+    call("CLUSTER", "DELSLOTS", *slots)
+  end
+
+  def flush_slots!
+    call("CLUSTER", "FLUSHSLOTS")
+  end
 end

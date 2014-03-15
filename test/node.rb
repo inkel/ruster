@@ -243,5 +243,33 @@ Protest.describe "Node" do
         assert_equal django.id, leo.slaves.first.id
       end
     end
+
+    test "allocate, deallocate and flush slots" do
+      with_nodes(n: 1) do |ports|
+        node = Ruster::Node.new("127.0.0.1:#{ports.first}")
+
+        # Single slot
+        node.add_slots(1024)
+
+        # Multiple slots
+        node.add_slots(2048, 4096)
+
+        node.load!
+
+        assert_equal [1024..1024, 2048..2048, 4096..4096], node.slots
+
+        node.del_slots(1024)
+
+        node.load!
+
+        assert_equal [2048..2048, 4096..4096], node.slots
+
+        node.flush_slots!
+
+        node.load!
+
+        assert_equal [], node.slots
+      end
+    end
   end
 end
