@@ -8,4 +8,8 @@ class Ruster::Node
   def client
     @client ||= Redic.new("redis://#{addr}")
   end
+
+  def enabled?
+    client.call("INFO", "cluster").include?("cluster_enabled:1")
+  end
 end
