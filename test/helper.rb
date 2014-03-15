@@ -46,11 +46,11 @@ def with_nodes(opts={})
   sleep 0.125
 
   yield ports
-
+ensure
   pids.each { |pid| Process.kill :TERM, pid }
 
   Process.waitall
-ensure
+
   FileUtils.remove_entry_secure tmp
 end
 
