@@ -63,4 +63,9 @@ class Ruster::Node
   def to_s
     "#{addr} [#{id}]"
   end
+
+  def self.from_info_line(info_line)
+    _, addr, _ = info_line.split
+    new(addr).tap { |node| node.read_info_line!(info_line) }
+  end
 end

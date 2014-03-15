@@ -115,5 +115,23 @@ Protest.describe "Node" do
         assert_equal [0, 1, 2, 3, 5, 10, 11, 12, 13, 16383], node.all_slots
       end
     end
+
+    test "create from info line" do
+      info_line = "9aee954a0b7d6b49d7e68c18d08873c56aaead6b 127.0.0.1:12701 master - 0 1 2 connected"
+
+      node = Ruster::Node.from_info_line(info_line)
+
+      assert_equal "9aee954a0b7d6b49d7e68c18d08873c56aaead6b", node.id
+      assert_equal "127.0.0.1:12701", node.addr
+      assert_equal ["master"], node.flags
+      assert_equal "-", node.master_id
+      assert_equal 0, node.ping_epoch
+      assert_equal 1, node.pong_epoch
+      assert_equal 2, node.config_epoch
+      assert_equal "connected", node.state
+      assert_equal [], node.slots
+
+      assert_equal "127.0.0.1:12701 [9aee954a0b7d6b49d7e68c18d08873c56aaead6b]", node.to_s
+    end
   end
 end
