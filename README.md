@@ -70,6 +70,12 @@ from several `source_ip:port` to `target_ip:port`.
 * cluster information
 * ASSERTIONS
 
+## Installation
+
+```
+$ gem install ruster
+```
+
 ## Thanks
 
 This work wouldn't have been possible without [@antirez][@antirez]
