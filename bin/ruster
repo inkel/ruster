@@ -189,6 +189,16 @@ class Cluster
 
     nodes.each { |node| add_node node }
   end
+
+  def remove_node(node)
+    default = nodes.first
+
+    UI.log "Removing node #{node} from cluster"
+
+    res = default.call("CLUSTER", "FORGET", node.id)
+
+    UI.abort res.message if res.is_a?(RuntimeError)
+  end
 end
 
 begin
@@ -201,6 +211,12 @@ begin
 
     args.each do |addr|
       cluster.add_node(Node.new(addr))
+    end
+  when "remove"
+    cluster = Cluster.new(args.shift)
+
+    args.each do |addr|
+      cluster.remove_node(Node.new(addr))
     end
   else
     UI.abort "Unrecognized action #{action}"

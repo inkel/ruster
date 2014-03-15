@@ -37,6 +37,10 @@ Removes `ip:port` from the cluster. `cluster_ip:port` must be one of the
 nodes that are already part of the cluster. The only requirement is
 that `ip:port` isn't the same as `cluster_ip:port`.
 
+**NOTE**: removing a node that has slots assigned leaves the cluster
+in a broken state. These slots should be resharded before removing the
+node.
+
 ### Execute a command in all nodes
 
 ```
