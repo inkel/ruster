@@ -38,13 +38,13 @@ Protest.describe "Node" do
 
     context "slots" do
       test "contiguous block" do
-        info_line = "9aee954a0b7d6b49d7e68c18d08873c56aaead6b :0 myself,master - 0 1 2 connected 0-16384"
+        info_line = "9aee954a0b7d6b49d7e68c18d08873c56aaead6b :0 myself,master - 0 1 2 connected 0-16383"
 
         node = Ruster::Node.new("127.0.0.1:12701")
 
         node.read_info_line!(info_line)
 
-        assert_equal [(0..16384)], node.slots
+        assert_equal [(0..16383)], node.slots
       end
 
       test "single" do
