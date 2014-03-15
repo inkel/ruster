@@ -11,7 +11,7 @@ action, *args = Clap.run ARGV, {
                                 "-t" => ->(ms) { $timeout = ms }
                               }
 
-abort "Usage: #{$0} <action> ip:port [...]" if action.nil? or args.nil? or args.empty?
+abort "Usage: #{File.basename($0)} <action> ip:port [...]" if action.nil? or args.nil? or args.empty?
 
 module UI
   def err msg
