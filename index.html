@@ -69,6 +69,10 @@ nodes that are already part of the cluster.</p>
 nodes that are already part of the cluster. The only requirement is
 that <code>ip:port</code> isn't the same as <code>cluster_ip:port</code>.</p>
 
+<p><strong>NOTE</strong>: removing a node that has slots assigned leaves the cluster
+in a broken state. These slots should be resharded before removing the
+node.</p>
+
 <h3>
 <a name="execute-a-command-in-all-nodes" class="anchor" href="#execute-a-command-in-all-nodes"><span class="octicon octicon-link"></span></a>Execute a command in all nodes</h3>
 
