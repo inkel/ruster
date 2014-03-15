@@ -12,6 +12,7 @@ class Ruster::Node
   attr :slots
   attr :migrating
   attr :importing
+  attr :friends
 
   def initialize(addr)
     @addr = addr
@@ -67,5 +68,20 @@ class Ruster::Node
   def self.from_info_line(info_line)
     _, addr, _ = info_line.split
     new(addr).tap { |node| node.read_info_line!(info_line) }
+  end
+
+  def load!
+    res = client.call("CLUSTER", "NODES")
+    raise res if res.is_a?(RuntimeError)
+
+    @friends = []
+
+    res.split("\n").each do |line|
+      if line.include?("myself")
+        read_info_line!(line)
+      else
+        @friends << self.class.from_info_line(line)
+      end
+    end
   end
 end
