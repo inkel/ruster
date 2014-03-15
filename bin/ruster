@@ -223,6 +223,51 @@ class Cluster
       UI.info "--"
     end
   end
+
+  def reshard(target_addr, slots, sources)
+    target = Node.new(target_addr)
+
+    from = sources.map{ |addr| Node.new(addr) } \
+      .sort{ |a, b| b.slots[:slots].size <=> a.slots[:slots].size }
+
+    total_slots = from.inject(0) do |sum, source|
+      sum + source.slots[:slots].size
+    end
+
+    from.each do |source|
+      # Proportional number of slots, based on current assigned slots
+      node_slots = (slots.to_f / total_slots * source.slots[:slots].size).to_i
+
+      UI.info "Moving #{node_slots} slots from #{source} to #{target}"
+
+      source.slots[:slots].take(node_slots).each do |slot|
+        UI.log "  Moving slot #{slot} from #{source} to #{target}"
+
+        target.call("CLUSTER", "SETSLOT", slot, "IMPORTING", source.id)
+        source.call("CLUSTER", "SETSLOT", slot, "MIGRATING", target.id)
+
+        done = false
+
+        until done
+          keys = source.call("CLUSTER", "GETKEYSINSLOT", slot, 10)
+
+          done = keys.empty?
+
+          keys.each do |key|
+            res = source.call("MIGRATE", target.ip, target.port, key, 0, 5000)
+
+            UI.abort res.message if res.is_a?(RuntimeError)
+          end
+        end
+
+        nodes!.each do |node|
+          res = node.call("CLUSTER", "SETSLOT", slot, "NODE", target.id)
+
+          UI.err res.message if res.is_a?(RuntimeError)
+        end
+      end
+    end
+  end
 end
 
 begin
@@ -246,6 +291,16 @@ begin
     cluster = Cluster.new(args.shift)
 
     cluster.call(*args)
+  when "reshard"
+    cluster = Cluster.new(args.shift)
+
+    slots = Integer(args.shift)
+
+    target = args.shift
+
+    sources = args
+
+    cluster.reshard(target, slots, sources)
   else
     UI.abort "Unrecognized action #{action}"
   end
