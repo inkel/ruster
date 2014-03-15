@@ -216,5 +216,32 @@ Protest.describe "Node" do
         assert_equal 0, node_a.friends.size
       end
     end
+
+    test "replicate/slaves" do
+      with_nodes(n: 2) do |ports|
+        port_a, port_b = ports.to_a
+
+        leo    = Ruster::Node.new("127.0.0.1:#{port_a}")
+        django = Ruster::Node.new("127.0.0.1:#{port_b}")
+
+        leo.meet("127.0.0.1", port_b)
+
+        # Give the nodes some time to get to know each other
+        sleep 0.5
+
+        leo.load!
+
+        django.replicate(leo)
+
+        # Wait for configuration to update
+        sleep 0.5
+
+        assert_equal 1, leo.slaves.size
+
+        django.load!
+
+        assert_equal django.id, leo.slaves.first.id
+      end
+    end
   end
 end

@@ -93,4 +93,14 @@ class Ruster::Node
   def forget(node)
     call("CLUSTER", "FORGET", node.id)
   end
+
+  def replicate(node)
+    call("CLUSTER", "REPLICATE", node.id)
+  end
+
+  def slaves
+    call("CLUSTER", "SLAVES", id).map do |line|
+      self.class.from_info_line(line)
+    end
+  end
 end
