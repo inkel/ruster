@@ -63,4 +63,8 @@ class Ruster::Cluster
     @entry.load!
     [@entry] + @entry.friends
   end
+
+  def add_node(ip, port)
+    @entry.meet(ip, port)
+  end
 end
