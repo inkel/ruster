@@ -232,6 +232,8 @@ class Cluster
       sum + source.slots[:slots].size
     end
 
+    UI.abort "No slots found to migrate" unless total_slots > 0
+
     from.each do |source|
       # Proportional number of slots, based on current assigned slots
       node_slots = (slots.to_f / total_slots * source.slots[:slots].size).to_i
@@ -239,7 +241,9 @@ class Cluster
       UI.info "Moving #{node_slots} slots from #{source} to #{target}"
 
       source.slots[:slots].take(node_slots).each do |slot|
-        UI.log "  Moving slot #{slot} from #{source} to #{target}"
+        count = source.call("CLUSTER", "COUNTKEYSINSLOT", slot)
+
+        UI.log "  Moving slot #{slot} (#{count} keys)"
 
         target.call("CLUSTER", "SETSLOT", slot, "IMPORTING", source.id)
         source.call("CLUSTER", "SETSLOT", slot, "MIGRATING", target.id)
@@ -255,6 +259,8 @@ class Cluster
             res = source.call("MIGRATE", target.ip, target.port, key, options[:db], options[:timeout])
 
             UI.abort res.message if res.is_a?(RuntimeError)
+
+            $stdout.print '.' if $verbose > 2
           end
         end
 
