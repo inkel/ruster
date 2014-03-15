@@ -107,6 +107,8 @@ Also, I'd like to thank to [Eruca Sativa][eruca] and [Cirse][cirse]
 for the music that's currently blasting my speakers while I write
 this.
 
+Who said programming shouldn't be [fun][lovestory]? [Discuss on Hacker News][lovestoryhn].
+
 [redis]: http://redis.io/
 [redis-cluster]: http://redis.io/topics/cluster-tutorial
 [redic]: https://github.com/amakawa/redic
@@ -120,3 +122,5 @@ this.
 [@pote]: https://twitter.com/poteland
 [@lucasefe]: https://twitter.com/lucasefe
 [nameme]: https://twitter.com/inkel/status/444638064393326592
+[lovestory]: https://github.com/inkel/ruster/blob/90f7da1c281bfc1a5fe01ccf8057f948278b3685/test/node.rb#L150-198
+[lovestoryhn]: https://news.ycombinator.com/item?id=7406297
