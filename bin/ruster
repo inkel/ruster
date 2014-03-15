@@ -220,7 +220,9 @@ class Cluster
     end
   end
 
-  def reshard(target_addr, slots, sources)
+  def reshard(target_addr, slots, sources, opts={})
+    options = { timeout: 1_000, db: 0 }.merge(opts)
+
     target = Node.new(target_addr)
 
     from = sources.map{ |addr| Node.new(addr) } \
@@ -250,7 +252,7 @@ class Cluster
           done = keys.empty?
 
           keys.each do |key|
-            res = source.call("MIGRATE", target.ip, target.port, key, 0, 5000)
+            res = source.call("MIGRATE", target.ip, target.port, key, options[:db], options[:timeout])
 
             UI.abort res.message if res.is_a?(RuntimeError)
           end
@@ -288,15 +290,16 @@ begin
 
     cluster.call(*args)
   when "reshard"
-    cluster = Cluster.new(args.shift)
+    options = {}
 
-    slots = Integer(args.shift)
+    cluster_addr, slots, target_addr, *sources = Clap.run args, {
+      "-t" => ->(ms) { options[:timeout] = Integer(ms) },
+      "-n" => ->(db) { options[:db] = db }
+    }
 
-    target = args.shift
+    cluster = Cluster.new(cluster_addr)
 
-    sources = args
-
-    cluster.reshard(target, slots, sources)
+    cluster.reshard(target_addr, slots, sources, options)
   else
     UI.abort "Unrecognized action #{action}"
   end
