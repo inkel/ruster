@@ -22,10 +22,14 @@ class Ruster::Node
     @client ||= Redic.new("redis://#{addr}")
   end
 
-  def enabled?
-    res = client.call("INFO", "cluster")
+  def call(*args)
+    res = client.call(*args)
     raise res if res.is_a?(RuntimeError)
-    parse_info(res)[:cluster_enabled] == "1"
+    res
+  end
+
+  def enabled?
+    parse_info(call("INFO", "cluster"))[:cluster_enabled] == "1"
   end
 
   def read_info_line!(info_line)
@@ -71,12 +75,9 @@ class Ruster::Node
   end
 
   def load!
-    res = client.call("CLUSTER", "NODES")
-    raise res if res.is_a?(RuntimeError)
-
     @friends = []
 
-    res.split("\n").each do |line|
+    call("CLUSTER", "NODES").split("\n").each do |line|
       if line.include?("myself")
         read_info_line!(line)
       else
@@ -86,6 +87,6 @@ class Ruster::Node
   end
 
   def meet(ip, port)
-    client.call("CLUSTER", "MEET", ip, port)
+    call("CLUSTER", "MEET", ip, port)
   end
 end
