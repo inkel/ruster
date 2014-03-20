@@ -3,6 +3,8 @@ class Ruster::Cluster
 
   attr :entry
 
+  SLOTS = 16384
+
   def initialize(entry)
     @entry = entry
   end
@@ -73,5 +75,32 @@ class Ruster::Cluster
       next if node.id == bye.id
       node.forget(bye)
     end
+  end
+
+  def self.create!(addrs)
+    # Check nodes
+    nodes = addrs.map do |addr|
+      node = ::Ruster::Node.new(addr)
+
+      raise ArgumentError, "Redis Server at #{node.ip_port} not running in cluster mode" unless node.cluster_enabled?
+      raise ArgumentError, "Redis Server at #{node.ip_port} already exists in a cluster" unless node.only_node?
+      raise ArgumentError, "Redis Server at #{node.ip_port} is not empty" unless node.empty?
+
+      node
+    end
+
+    # Allocate slots evenly among all nodes
+    slots_by_node = 0.upto(SLOTS - 1).each_slice((SLOTS.to_f / nodes.length).ceil)
+
+    nodes.each do |node|
+      slots = slots_by_node.next.to_a
+
+      node.add_slots(*slots)
+    end
+
+    # Create cluster by meeting nodes
+    entry = nodes.shift
+
+    nodes.each { |node| entry.meet node.ip, node.port }
   end
 end
