@@ -160,4 +160,8 @@ class Ruster::Node
       end
     end
   end
+
+  def empty?
+    call("DBSIZE") == 0
+  end
 end
