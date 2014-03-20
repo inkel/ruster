@@ -127,4 +127,37 @@ class Ruster::Node
   def port
     addr.split(":").last
   end
+
+  # In Redis Cluster only DB 0 is enabled
+  DB0 = 0
+
+  def move_slot!(slot, target, options={})
+    options[:num_keys] ||= 10
+    options[:timeout]  ||= call("CONFIG", "GET", "cluster-node-timeout")
+
+    # Tell the target node to import the slot
+    target.call("CLUSTER", "SETSLOT", slot, "IMPORTING", id)
+
+    # Tell the current node to export the slot
+    call("CLUSTER", "SETSLOT", slot, "MIGRATING", target.id)
+
+    # Export keys
+    done = false
+    until done
+      keys = call("CLUSTER", "GETKEYSINSLOT", slot, options[:num_keys])
+
+      done = keys.empty?
+
+      keys.each do |key|
+        call("MIGRATE", target.ip, target.port, key, DB0, options[:timeout])
+      end
+
+      # Tell cluster the location of the new slot
+      call("CLUSTER", "SETSLOT", slot, "NODE", target.id)
+
+      friends.each do |node|
+        friend.call("CLUSTER", "SETSLOT", slot, "NODE", target.id)
+      end
+    end
+  end
 end
