@@ -147,11 +147,11 @@ class Node
     slots = { slots: [], migrating: {}, importing: {} }
 
     @slots.each do |data|
-      if data[0] == /\[(\d+)-([<>])-(\d+)\]/
+      if data =~ /\[([0-9a-f]+)-([<>])-([0-9a-f]+)\]/
         if $2 == ">"
-          slots[:migrating][$1] = $2
+          slots[:migrating][$1] = $3
         else
-          slots[:importing][$1] = $2
+          slots[:importing][$1] = $3
         end
       elsif data =~ /(\d+)-(\d+)/
         b, e = $1.to_i, $2.to_i
