@@ -133,7 +133,6 @@ class Node
   end
 
   def alive?
-    p [ip_port, flags, state]
     !dead?
   end
 
