@@ -2,6 +2,7 @@ $:.unshift(File.expand_path("../lib", File.dirname(__FILE__)))
 
 require "protest"
 require "ruster"
+require "tmpdir"
 
 def with_nodes(opts={})
   options = {
