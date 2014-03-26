@@ -164,4 +164,8 @@ class Ruster::Node
   def empty?
     call("DBSIZE") == 0
   end
+
+  def only_node?
+    parse_info(call("CLUSTER", "INFO"))[:cluster_known_nodes] == "1"
+  end
 end
