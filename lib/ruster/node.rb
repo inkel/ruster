@@ -91,6 +91,7 @@ class Ruster::Node
   end
 
   def forget(node)
+    raise ArgumentError, "Node #{node} is not empty" unless node.slots.empty? and node.migrating.empty? and node.importing.empty?
     call("CLUSTER", "FORGET", node.id)
   end
 
