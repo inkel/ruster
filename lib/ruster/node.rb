@@ -157,7 +157,7 @@ class Ruster::Node
       call("CLUSTER", "SETSLOT", slot, "NODE", target.id)
 
       friends.each do |node|
-        friend.call("CLUSTER", "SETSLOT", slot, "NODE", target.id)
+        node.call("CLUSTER", "SETSLOT", slot, "NODE", target.id)
       end
     end
   end
