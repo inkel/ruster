@@ -82,9 +82,9 @@ class Ruster::Cluster
     nodes = addrs.map do |addr|
       node = ::Ruster::Node.new(addr)
 
-      raise ArgumentError, "Redis Server at #{node.ip_port} not running in cluster mode" unless node.cluster_enabled?
-      raise ArgumentError, "Redis Server at #{node.ip_port} already exists in a cluster" unless node.only_node?
-      raise ArgumentError, "Redis Server at #{node.ip_port} is not empty" unless node.empty?
+      raise ArgumentError, "Redis Server at #{addr} not running in cluster mode" unless node.enabled?
+      raise ArgumentError, "Redis Server at #{addr} already exists in a cluster" unless node.only_node?
+      raise ArgumentError, "Redis Server at #{addr} is not empty" unless node.empty?
 
       node
     end
