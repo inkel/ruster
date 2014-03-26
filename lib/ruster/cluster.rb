@@ -111,4 +111,33 @@ class Ruster::Cluster
       yield node, node.call(*args)
     end
   end
+
+  def reshard(target, num_slots, sources)
+    raise ArgumentError, "Target node #{target} is not part of the cluster" unless in_cluster?(target)
+    target.load!
+
+    sources.each do |source|
+      raise ArgumentError, "Source node #{source} is not part of the cluster" unless in_cluster?(source)
+      source.load!
+    end
+
+    sources.sort_by!{ |node| -node.slots.size }
+
+    total_slots = sources.inject(0) do |sum, node|
+      sum + node.all_slots.size
+    end
+
+    sources.each do |node|
+      # Proportional number of slots based on node size
+      node_slots = (num_slots.to_f / total_slots * node.all_slots.size)
+
+      node.all_slots.take(node_slots).each do |slot|
+        node.move_slot!(slot, target)
+      end
+    end
+  end
+
+  def in_cluster?(node)
+    nodes.any?{ |n| n.addr == node.addr }
+  end
 end
