@@ -102,6 +102,8 @@ class Ruster::Cluster
     entry = nodes.shift
 
     nodes.each { |node| entry.meet node.ip, node.port }
+
+    new(entry)
   end
 
   def each(*args, &block)
