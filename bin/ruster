@@ -1,7 +1,7 @@
 #! /usr/bin/env ruby
 
-require "redic"
 require "clap"
+require_relative "../lib/ruster"
 
 $verbose = 0
 
@@ -41,305 +41,46 @@ EOU
 
 abort USAGE if action.nil? or args.nil? or args.empty?
 
-module UI
-  def err msg
-    $stderr.puts msg
-  end
-
-  def abort msg, backtrace=[]
-    err msg
-    backtrace.each { |line| err line } if $verbose > 1
-    exit 1
-  end
-
-  def info *args
-    $stdout.puts args.join(" ")
-  end
-
-  def log *args
-    $stdout.puts args.join(" ") if $verbose > 0
-  end
-
-  def debug *args
-    $stdout.puts args.join(" ") if $verbose > 1
-  end
-
-  extend self
-end
-
-class Node
-  [:id, :ip_port, :flags, :master_id, :ping, :pong, :config, :state, :slots].each do |a|
-    attr a
-  end
-
-  def initialize(ip_port)
-    @ip_port = ip_port
-    load_info!
-  end
-
-  def cluster_enabled?
-    call("INFO", "cluster").include?("cluster_enabled:1")
-  end
-
-  def only_node?
-    call("CLUSTER", "INFO").include?("cluster_known_nodes:1")
-  end
-
-  def empty?
-    call("INFO", "keyspace").strip == "# Keyspace"
-  end
-
-  def load_info!
-    call("CLUSTER", "NODES").split("\n").each do |line|
-      parts = line.split
-      next unless parts[2].include?("myself")
-      set_info!(*parts)
-    end
-  end
-
-  def set_info!(id, ip_port, flags, master_id, ping, pong, config, state, *slots)
-    @id = id
-    @flags = flags.split(",")
-    @master_id = master_id
-    @ping = ping
-    @pong = pong
-    @config = config
-    @state = state
-    @slots = slots
-    @ip_port = ip_port unless flags.include?("myself")
-  end
-
-  def ip
-    @ip_port.split(":").first
-  end
-
-  def port
-    @ip_port.split(":").last
-  end
-
-  def client
-    @client ||= Redic.new("redis://#{@ip_port}")
-  end
-
-  def call(*args)
-    UI.debug ">", *args
-    client.call(*args)
-  end
-
-  def dead?
-    %w{ disconnected fail noaddr }.any? do |flag|
-      flags.include?(flag)
-    end
-  end
-
-  def alive?
-    !dead?
-  end
-
-  def to_s
-    "#{@id} [#{@ip_port}]"
-  end
-
-  def slots
-    return @_slots if @_slots
-
-    slots = { slots: [], migrating: {}, importing: {} }
-
-    @slots.each do |data|
-      if data[0] == /\[(\d+)-([<>])-(\d+)\]/
-        if $2 == ">"
-          slots[:migrating][$1] = $2
-        else
-          slots[:importing][$1] = $2
-        end
-      elsif data =~ /(\d+)-(\d+)/
-        b, e = $1.to_i, $2.to_i
-        (b..e).each { |slot| slots[:slots] << slot }
-      else
-        slots[:slots] << data.to_i
-      end
-    end
-
-    @_slots = slots
-  end
-end
-
-class Cluster
-  SLOTS = 16384
-
-  def initialize(addrs)
-    @addrs = Array(addrs)
-  end
-
-  def nodes
-    @nodes ||= @addrs.map { |addr| Node.new(addr) }
-  end
-
-  def allocate_slots(node, slots)
-    UI.log "Allocating #{slots.size} slots (#{slots.first}..#{slots.last}) in node #{node}"
-
-    UI.debug "> CLUSTER ADDSLOTS #{slots.first}..#{slots.last}"
-
-    res = node.client.call("CLUSTER", "ADDSLOTS", *slots)
-
-    UI.abort res.message if res.is_a?(RuntimeError)
-  end
-
-  def add_node(node)
-    default = nodes.first
-
-    UI.log "Joining node #{node} to node #{default}"
-
-    ip, port = node.ip_port.split(":")
-
-    res = default.call("CLUSTER", "MEET", ip, port)
-
-    UI.abort res.message if res.is_a?(RuntimeError)
-  end
-
-  def create!
-    nodes.each do |node|
-      raise ArgumentError, "Redis Server at #{node.ip_port} not running in cluster mode" unless node.cluster_enabled?
-      raise ArgumentError, "Redis Server at #{node.ip_port} already exists in a cluster" unless node.only_node?
-      raise ArgumentError, "Redis Server at #{node.ip_port} is not empty" unless node.empty?
-    end
-
-    UI.log "Allocating #{SLOTS} slots in #{nodes.length} nodes"
-
-    available_slots = 0.upto(SLOTS - 1).each_slice((SLOTS.to_f / nodes.length).ceil)
-
-    nodes.each do |node|
-      slots = available_slots.next.to_a
-
-      allocate_slots(node, slots)
-    end
-
-    nodes.each { |node| add_node node }
-  end
-
-  def remove_node(node)
-    default = nodes.first
-
-    UI.log "Removing node #{node} from cluster"
-
-    res = default.call("CLUSTER", "FORGET", node.id)
-
-    UI.abort res.message if res.is_a?(RuntimeError)
-  end
-
-  def nodes!
-    node = nodes.sample
-
-    node.call("CLUSTER", "NODES").split("\n").map do |line|
-      _, ip_port, flags, _ = line.split
-
-      if flags.include?("myself")
-        node
-      else
-        Node.new(ip_port)
-      end
-    end
-  end
-
-  def each(*args)
-    nodes!.each do |node|
-      UI.info "#{node}: #{args.join(' ')}"
-
-      res = node.call(*args)
-      UI.info res
-      UI.info "--"
-    end
-  end
-
-  def reshard(target_addr, slots, sources, opts={})
-    options = { timeout: 1_000, db: 0 }.merge(opts)
-
-    target = Node.new(target_addr)
-
-    from = sources.map{ |addr| Node.new(addr) } \
-      .sort{ |a, b| b.slots[:slots].size <=> a.slots[:slots].size }
-
-    total_slots = from.inject(0) do |sum, source|
-      sum + source.slots[:slots].size
-    end
-
-    UI.abort "No slots found to migrate" unless total_slots > 0
-
-    from.each do |source|
-      # Proportional number of slots, based on current assigned slots
-      node_slots = (slots.to_f / total_slots * source.slots[:slots].size).to_i
-
-      UI.info "Moving #{node_slots} slots from #{source} to #{target}"
-
-      source.slots[:slots].take(node_slots).each do |slot|
-        count = source.call("CLUSTER", "COUNTKEYSINSLOT", slot)
-
-        UI.log "  Moving slot #{slot} (#{count} keys)"
-
-        target.call("CLUSTER", "SETSLOT", slot, "IMPORTING", source.id)
-        source.call("CLUSTER", "SETSLOT", slot, "MIGRATING", target.id)
-
-        done = false
-
-        until done
-          keys = source.call("CLUSTER", "GETKEYSINSLOT", slot, 10)
-
-          done = keys.empty?
-
-          keys.each do |key|
-            res = source.call("MIGRATE", target.ip, target.port, key, options[:db], options[:timeout])
-
-            UI.abort res.message if res.is_a?(RuntimeError)
-
-            $stdout.print '.' if $verbose > 2
-          end
-        end
-
-        nodes!.each do |node|
-          res = node.call("CLUSTER", "SETSLOT", slot, "NODE", target.id)
-
-          UI.err res.message if res.is_a?(RuntimeError)
-        end
-      end
-    end
-  end
-end
-
 begin
   case action
   when "create"
-    cluster = Cluster.new(args)
-    cluster.create!
+    Ruster::Cluster.create!(args)
   when "add"
-    cluster = Cluster.new(args.shift)
+    cluster = Ruster::Cluster.new(Ruster::Node.new(args.shift))
 
     args.each do |addr|
-      cluster.add_node(Node.new(addr))
+      ip, port = addr.split(":")
+      cluster.add_node(ip, port)
     end
   when "remove"
-    cluster = Cluster.new(args.shift)
+    cluster = Ruster::Cluster.new(Ruster::Node.new(args.shift))
 
     args.each do |addr|
-      cluster.remove_node(Node.new(addr))
+      node = Ruster::Node.new(addr)
+      node.load!
+      cluster.remove_node(node)
     end
   when "each"
-    cluster = Cluster.new(args.shift)
+    cluster = Ruster::Cluster.new(Ruster::Node.new(args.shift))
 
-    cluster.each(*args)
+    cluster.each(*args) do |node, res|
+      puts "> #{node}"
+      puts res
+    end
   when "reshard"
-    options = {}
+    cluster = Ruster::Cluster.new(Ruster::Node.new(args.shift))
 
-    cluster_addr, slots, target_addr, *sources = Clap.run args, {
-      "-t" => ->(ms) { options[:timeout] = Integer(ms) },
-      "-n" => ->(db) { options[:db] = db }
-    }
+    num_slots, target_addr, *sources_addr = args
 
-    cluster = Cluster.new(cluster_addr)
+    target  = Ruster::Node.new(target_addr)
+    sources = sources_addr.map{ |addr| Ruster::Node.new(addr) }
 
-    cluster.reshard(target_addr, slots, sources, options)
+    cluster.reshard(target, num_slots.to_i, sources)
   else
-    UI.abort "Unrecognized action `#{action}'\n#{USAGE}"
+    abort "Unrecognized action `#{action}'\n#{USAGE}"
   end
 rescue => ex
-  UI.abort ex.message, ex.backtrace
+  $stderr.puts ex.message
+  ex.backtrace.each{ |line| $stderr.puts line } if $verbose > 1
+  exit 2
 end

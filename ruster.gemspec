@@ -15,5 +15,7 @@ Gem::Specification.new do |s|
   s.add_dependency   "redic"
   s.add_dependency   "clap"
 
+  s.add_development_dependency "protest"
+
   s.files             = `git ls-files`.split("\n")
 end
