@@ -103,4 +103,10 @@ class Ruster::Cluster
 
     nodes.each { |node| entry.meet node.ip, node.port }
   end
+
+  def each(*args, &block)
+    nodes.each do |node|
+      yield node, node.call(*args)
+    end
+  end
 end
