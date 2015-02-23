@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name              = "ruster"
-  s.version           = "0.0.3"
+  s.version           = "0.0.4"
   s.summary           = "A simple Redis Cluster Administration tool"
   s.description       = "Control your Redis Cluster from the command line."
   s.authors           = ["Leandro López"]
